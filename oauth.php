@@ -53,7 +53,6 @@ if ( !isset($_GET['oauthcallback']) || $_GET['oauthcallback'] != 1 || !isset($_G
 		}
 
 		try {
-			$oAuth->setAuthType(OAUTH_AUTH_TYPE_AUTHORIZATION);
 			$oAuth->setToken($_SESSION['oauth_token'],$_SESSION['oauth_token_secret']);
 
 			oAuthCallBackAction($oAuth, $obpApiSettings['url']['token']['access'], $_GET['oauth_verifier']);
