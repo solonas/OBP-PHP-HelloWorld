@@ -1,9 +1,10 @@
 <?php
-
 /**
  * documentation:  https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server
  *
  * register sandbox api : https://apisandbox.openbankproject.com/consumer-registration
+ *
+ * tested with php version 5.6.1
  *
  *
  */
@@ -43,7 +44,7 @@ if ( !isset($_GET['oauthcallback']) || $_GET['oauthcallback'] != 1 || !isset($_G
 		oAuthAction($oAuth, $obpApiSettings['url']['token']['request'], $obpApiSettings['url']['auth']);
 	} catch ( \OAuthException $ex ) {
 		$message = $ex->lastResponse.'_ : _'.$ex->getMessage();
-		echo "<p>$message</p>";
+		die($message);
 	}
 } else {
 	if ( !isset($_SESSION['oAuthToken']) || !isset($_SESSION['oAuthTokenSecret']) ) {
@@ -89,10 +90,13 @@ if ( !isset($_GET['oauthcallback']) || $_GET['oauthcallback'] != 1 || !isset($_G
  * @throws Exception
  */
 function oAuthAction($oAuth, $requestTokenUrl, $authUrl) {
+	$callBackUri = (isset($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] == 'on')) ? 'https://' : 'http://';
+	$callBackUri .= $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'] . '?oauthcallback=1';
+
 	// Step 1 : Obtaining a request token :
 	$requestTokenInfo = $oAuth->getRequestToken(
 		$requestTokenUrl,
-		'https://app.mg.vm/oauth.php?oauthcallback=1',
+		$callBackUri,
 		OAUTH_HTTP_METHOD_POST
 	);
 
