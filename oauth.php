@@ -11,9 +11,11 @@
 
 $baseUrlRealData= 'https://api.openbankproject.com';
 $baseUrlSandBox = 'https://apisandbox.openbankproject.com';
-$baseUrl = $baseUrlSandBox;
+$baseUrl        = $baseUrlSandBox;
+$apiVersion     = 'v1.2';
 
 session_save_path('/tmp/');
+session_start();
 
 $obpApiSettings = array(
 	'consumer'  => array(
@@ -26,18 +28,12 @@ $obpApiSettings = array(
 			'access'    => "$baseUrl/oauth/token",
 		),
 		'auth'      => "$baseUrl/oauth/authorize",
-		'api'       => "$baseUrl/obp/v1.2",
+		'api'       => "$baseUrl/obp/$apiVersion",
 	)
 );
 
-session_start();
-
-$oAuth = new \OAuth(
-	$obpApiSettings['consumer']['key'],
-	$obpApiSettings['consumer']['secret']
-);
-// in case of exception debug $oAuth->debugInfo
-$oAuth->enableDebug();
+$oAuth = new \OAuth( $obpApiSettings['consumer']['key'], $obpApiSettings['consumer']['secret'] );
+$oAuth->enableDebug();  // in case of exception debug $oAuth->debugInfo
 
 if ( !isset($_GET['oauthcallback']) || $_GET['oauthcallback'] != 1 || !isset($_GET['oauth_verifier']) ) {
 	try {
@@ -47,7 +43,7 @@ if ( !isset($_GET['oauthcallback']) || $_GET['oauthcallback'] != 1 || !isset($_G
 		die($message);
 	}
 } else {
-	if ( !isset($_SESSION['oAuthToken']) || !isset($_SESSION['oAuthTokenSecret']) ) {
+	if ( !isset($_SESSION['oauth_token_access']) || !isset($_SESSION['oauth_token_secret_access']) ) {
 		if ( !isset($_SESSION['oauth_token'])
 		     || !isset($_SESSION['oauth_token_secret'])
 		     || $_SESSION['oauth_token'] != $_GET['oauth_token'])
@@ -67,10 +63,7 @@ if ( !isset($_GET['oauthcallback']) || $_GET['oauthcallback'] != 1 || !isset($_G
 		}
 	}
 
-	$oAuth->setToken(
-		$_SESSION['oAuthToken'],
-		$_SESSION['oAuthTokenSecret']
-	);
+	$oAuth->setToken( $_SESSION['oauth_token_access'], $_SESSION['oauth_token_secret_access'] );
 
 	try {
 		loadAndPrintoutBanks($oAuth, $obpApiSettings['url']['api']);
@@ -94,11 +87,7 @@ function oAuthAction($oAuth, $requestTokenUrl, $authUrl) {
 	$callBackUri .= $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'] . '?oauthcallback=1';
 
 	// Step 1 : Obtaining a request token :
-	$requestTokenInfo = $oAuth->getRequestToken(
-		$requestTokenUrl,
-		$callBackUri,
-		OAUTH_HTTP_METHOD_POST
-	);
+	$requestTokenInfo = $oAuth->getRequestToken( $requestTokenUrl, $callBackUri, OAUTH_HTTP_METHOD_POST );
 
 	if ( $requestTokenInfo['oauth_callback_confirmed'] == 'true' ) {
 		$_SESSION['oauth_token']        = $requestTokenInfo['oauth_token'];
@@ -124,15 +113,10 @@ function oAuthAction($oAuth, $requestTokenUrl, $authUrl) {
  */
 function oAuthCallBackAction($oAuth, $accessTokenUrl, $oAuthVerifier) {
 	// Step 3 : Converting the request token to an access token
-	$accessTokenInfo = $oAuth->getAccessToken(
-		$accessTokenUrl,
-		null,
-		$oAuthVerifier,
-		OAUTH_HTTP_METHOD_POST
-	);
+	$accessTokenInfo = $oAuth->getAccessToken( $accessTokenUrl, null, $oAuthVerifier, OAUTH_HTTP_METHOD_POST );
 
-	$_SESSION['oAuthToken'] = $accessTokenInfo['oauth_token'];
-	$_SESSION['oAuthTokenSecret'] = $accessTokenInfo['oauth_token_secret'];
+	$_SESSION['oauth_token_access'] = $accessTokenInfo['oauth_token'];
+	$_SESSION['oauth_token_secret_access'] = $accessTokenInfo['oauth_token_secret'];
 	session_write_close();
 }
 
